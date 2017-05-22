@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import glob
 
 
 def readifrit(path, nvar=0, moden=2, skipmoden=2):
@@ -63,31 +64,129 @@ def pk(data, box_size, k_list_phys, mode=0, usefftw=False):
         return k,data
 
 
-import glob
+#####
 
-a = 0.125
+machine = 'ias'
+mode = 8
+
+#####
+i=0
+for s in [2, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128]:
+    i+=1
+    if machine=='ias':
+        files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xLOG_xshuffle_%04i_%04i/rei.log'%(s,100))
+    if machine=='prs':
+        files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin'%(s,100))
+    files.sort()
+    d1 = readifrit(files[40], nvar=0)[3]
+    plt.subplot(3,4,i)
+    # plt.imshow(np.log10(d1[:,:,0]), vmax=2,vmin=-1)
+    plt.imshow((d1[:,:,0]), vmax=1,vmin=0)
+
+plt.show()
+
+#####
+
+a = 0.1000
 res_all = []
-for i in np.arange(8,24):
+z_list = np.linspace(5,12,100)
+for i in np.arange(0,24):
     print(i)
     temp = []
     # files = glob.glob('/scratch/kaurov/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(4,i))
-    files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xLOG_xshuffle_%04i_%04i/rei.log'%(4,i))
-    d = np.genfromtxt(files[0])
-    plt.plot(1./d[:,0]-1., d[:,8])
+    if machine=='ias':
+        files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xLOG_xshuffle_%04i_%04i/rei.log'%(mode,i))
+    if machine == 'prs':
+        files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xLOG_xshuffle_%04i_%04i/rei.log'%(mode,i))
+    if len(files)>0:
+        d = np.genfromtxt(files[0])
+        temp = np.interp(z_list, 1./d[::-1,0]-1., d[::-1,8], left=np.nan)
+        res_all.append(temp)
 
-plt.xlim([6,10])
+res_all = np.array(res_all)
+
+res_mean = np.nanmean(res_all, 0)
+
+ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
+plt.fill_between(z_list, np.nanmin(res_all, 0), np.nanmax(res_all, 0), alpha=0.5)
+plt.plot(z_list, res_mean, 'k')
+plt.ylabel(r'$f_\mathrm{HI}$')
+plt.xlim([5,10])
+plt.setp(ax1.get_xticklabels() , visible=False)
+ax2 = plt.subplot2grid((3, 1), (2, 0), rowspan=1)
+for i in range(res_all.shape[0]):
+    plt.plot(z_list, res_all[i,:] - res_mean)
+
+plt.xlim([5,10])
+plt.xlabel(r'$z$')
+plt.ylabel(r'$\mathrm{\Delta} f_\mathrm{HI}$')
+plt.tight_layout()
+plt.subplots_adjust(hspace=0.03)
+plt.show()
+
+###
+
+
+import glob
+
+a = 0.1000
+res_all = []
+z_list = np.linspace(5,20,100)
+for i in np.arange(0,24):
+    print(i)
+    temp = []
+    # files = glob.glob('/scratch/kaurov/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(2,i))
+    if machine=='ias':
+        files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xLOG_xshuffle_%04i_%04i/rei.log'%(mode,i))
+    if machine=='prs':
+        files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xLOG_xshuffle_%04i_%04i/rei.log'%(mode,i))
+    if len(files)>0:
+        d = np.genfromtxt(files[0])
+        temp = np.interp(z_list, 1./d[::-1,0]-1., d[::-1,25], left=np.nan)
+        res_all.append(temp)
+
+res_all = np.array(res_all)*1000
+
+res_mean = np.nanmean(res_all, 0)
+
+
+ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
+plt.fill_between(z_list, np.nanmin(res_all, 0), np.nanmax(res_all, 0), alpha=0.5)
+plt.plot(z_list, res_mean, 'k')
+plt.ylabel(r'$T_b\;\mathrm{[mK]}$')
+plt.xlim([5,16])
+# plt.yscale('log')
+plt.setp(ax1.get_xticklabels() , visible=False)
+ax2 = plt.subplot2grid((3, 1), (2, 0), rowspan=1)
+
+from matplotlib import cm
+
+for i, val in enumerate(cm.jet(np.linspace(0,1,res_all.shape[0]))):
+    plt.plot(z_list, res_all[i,:] - res_mean, color=val)
+
+plt.xlim([5,16])
+plt.xlabel(r'$z$')
+plt.ylabel(r'$\mathrm{\Delta} T_b\;\mathrm{[mK]}$')
+plt.tight_layout()
+plt.subplots_adjust(hspace=0.03)
 plt.show()
 
 
-z = 7.2
+
+###
+
+z = 7.
 a = 1./(1.+z)
 print(z,a)
 res_all = []
-for i in np.arange(8,24):
+for i in np.arange(0,24):
     print(i)
     temp = []
-    # files = glob.glob('/scratch/kaurov/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(4,i))
-    files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin'%(4,i))
+    # files = glob.glob('/scratch/kaurov/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(2,i))
+    if machine=='ias':
+        files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(mode,i))
+    if machine=='prs':
+        files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin'%(mode,i))
     print(files)
     files.sort()
     snaps_n = np.array([np.float(files[i][-10:-4]) for i in range(len(files))])
@@ -104,20 +203,22 @@ for i in np.arange(8,24):
         print('no data')
 
 
-
-# plt.figure(1)
-# for i in range(len(res_all)):
-#     plt.subplot(3,3,i+1)
-#     plt.imshow(res_all[i][:,:,0])
-#
-# plt.show()
-#
-#
 plt.figure(2)
-plt.imshow(np.array(res_all).sum(0)[:, :, 0])
+N = len(res_all)
+plt.contourf(np.array(res_all).sum(0)[:, :, 0]/N, levels=np.linspace(0, 1, N+1))#, norm=LogNorm())
+plt.gca().xaxis.set_ticks([])
+plt.gca().yaxis.set_ticks([])
+# plt.axis('equal')
+
+plt.gca().set_aspect('equal')
+plt.gca().autoscale(tight=True)
+
+# plt.gca().yaxis.set_visible(False)
+
+plt.xlabel(r'$10\;h^{-1}\mathrm{Mpc}$')
+
 plt.colorbar()
 plt.show()
-
 
 
 
