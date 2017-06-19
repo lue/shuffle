@@ -30,7 +30,7 @@ def shuffle(d, s, seed):
                 np.random.shuffle(data[i*s:(i+1)*s,j*s:(j+1)*s,k*s:(k+1)*s,])
     return data
 
-def shuffle_fft(d,s,seed, saveamps=False):
+def shuffle_rfft(d,s,seed, saveamps=False):
     data = d.copy()
     N = data.shape[0]
     np.random.seed(seed)
@@ -43,10 +43,42 @@ def shuffle_fft(d,s,seed, saveamps=False):
         rand_field_1 = np.random.rand(N,N,int(N/2+1))
         data_fft[vv>s] *= np.exp(rand_field_1[vv>s]*1j*2.*np.pi)
     else:
-        rand_field_1 = np.random.normal(loc=0, scale=1, size=(N, N, int(N / 2 + 1)))
-        rand_field_2 = np.random.normal(loc=0, scale=1, size=(N, N, int(N / 2 + 1)))
-        data_fft[vv > s] = np.sqrt(1.0*N**3)*(rand_field_1 + 1j*rand_field_2)[vv > s]
+        data_fft[vv>s] = np.random.shuffle(data_fft[vv>s])
+    # if saveamps:
+    #     rand_field_1 = np.random.rand(N,N,int(N/2+1))
+    #     data_fft[vv>s] *= np.exp(rand_field_1[vv>s]*1j*2.*np.pi)
+    # else:
+    #     rand_field_1 = np.random.normal(loc=0, scale=1, size=(N, N, int(N / 2 + 1)))
+    #     rand_field_2 = np.random.normal(loc=0, scale=1, size=(N, N, int(N / 2 + 1)))
+    #     data_fft[vv > s] = np.sqrt(1.0*N**3)*(rand_field_1 + 1j*rand_field_2)[vv > s]
     return np.fft.irfftn(data_fft)
+
+
+def shuffle_fft(d,s,seed, saveamps=False):
+    N = d.shape[0]
+    temp = np.random.normal(size=[N, N, N])
+    temp -= temp.mean()
+    data = d + temp * 1j
+    np.random.seed(seed)
+    data_fft = np.fft.fftn(data)
+    freq1 = np.fft.fftfreq(N)
+    xv, yv, zv = np.meshgrid(freq1, freq1, freq1)
+    vv = np.sqrt(xv**2+yv**2+zv**2)*N
+    if saveamps:
+        rand_field_1 = np.random.rand(N,N,int(N/2+1))
+        data_fft[vv>s] *= np.exp(rand_field_1[vv>s]*1j*2.*np.pi)
+    else:
+        temp = data_fft[vv>s].copy()
+        np.random.shuffle(temp)
+        data_fft[vv>s] = temp
+    # if saveamps:
+    #     rand_field_1 = np.random.rand(N,N,int(N/2+1))
+    #     data_fft[vv>s] *= np.exp(rand_field_1[vv>s]*1j*2.*np.pi)
+    # else:
+    #     rand_field_1 = np.random.normal(loc=0, scale=1, size=(N, N, int(N / 2 + 1)))
+    #     rand_field_2 = np.random.normal(loc=0, scale=1, size=(N, N, int(N / 2 + 1)))
+    #     data_fft[vv > s] = np.sqrt(1.0*N**3)*(rand_field_1 + 1j*rand_field_2)[vv > s]
+    return np.real(np.fft.ifftn(data_fft))
 
 
 
@@ -70,7 +102,8 @@ def shuffle_fft(d,s,seed, saveamps=False):
 # for s in [2,4,8,12,16,24,32,48,64,96,128]:
 for s in [8,16,32,64,128]:
     print(s)
-    for iii in range(0, 16):
+    for iii in range(0, 8):
+        # for iii in [101]:
         d = data.copy()
         # d = shuffle(data, s, s*10000+iii)
         d = shuffle_fft(d, 1.0*N/s, s*10000+iii)

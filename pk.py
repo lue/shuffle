@@ -67,22 +67,24 @@ def pk(data, box_size, k_list_phys, mode=0, usefftw=False):
 #####
 
 machine = 'ias'
-mode = 8
+mode = 32
 
 #####
 i=0
-for s in [2, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128]:
+# for s in [2, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128]:
+for s in [8, 16, 32, 64, 128]:
     i+=1
     if machine=='ias':
-        files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xLOG_xshuffle_%04i_%04i/rei.log'%(s,100))
+        files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xLOG_xshuffle_%04i_%04i/rei.log'%(s,101))
     if machine=='prs':
-        files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin'%(s,100))
+        files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin'%(s,101))
     files.sort()
-    d1 = readifrit(files[40], nvar=0)[3]
-    plt.subplot(3,4,i)
+    d = np.genfromtxt(files[0])
     # plt.imshow(np.log10(d1[:,:,0]), vmax=2,vmin=-1)
-    plt.imshow((d1[:,:,0]), vmax=1,vmin=0)
+    # plt.imshow((d1[:,:,0]), vmax=1,vmin=0)
+    plt.plot(1./d[::-1,0]-1., d[::-1,8])
 
+plt.xlim([5,12])
 plt.show()
 
 #####
@@ -179,7 +181,7 @@ z = 7.
 a = 1./(1.+z)
 print(z,a)
 res_all = []
-for i in np.arange(0,24):
+for i in np.concatenate([np.arange(0,24),[101]]):
     print(i)
     temp = []
     # files = glob.glob('/scratch/kaurov/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(2,i))
@@ -187,9 +189,10 @@ for i in np.arange(0,24):
         files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(mode,i))
     if machine=='prs':
         files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin'%(mode,i))
-    print(files)
     files.sort()
+    print(files)
     snaps_n = np.array([np.float(files[i][-10:-4]) for i in range(len(files))])
+    # print(snaps_n[-1])
     # a_list = np.zeros(len(snaps))
     xn = np.where(snaps_n>=a)[0]
     if len(xn)>0:
@@ -205,7 +208,7 @@ for i in np.arange(0,24):
 
 plt.figure(2)
 N = len(res_all)
-plt.contourf(np.array(res_all).sum(0)[:, :, 0]/N, levels=np.linspace(0, 1, N+1))#, norm=LogNorm())
+plt.contourf(np.array(res_all).sum(0)[:, :, 0]/N, levels=np.linspace(0, 1, N+1), cmap='gray')#, norm=LogNorm())
 plt.gca().xaxis.set_ticks([])
 plt.gca().yaxis.set_ticks([])
 # plt.axis('equal')
@@ -221,6 +224,126 @@ plt.colorbar()
 plt.show()
 
 
-
 # from mayavi.mlab import *
 # contour3d(np.array(res_all).sum(0))
+
+######
+
+
+z = 7.
+a = 1./(1.+z)
+nvar=4
+print(z,a)
+res_all = []
+res_all2 = []
+for i in np.arange(0,24):
+    print(i)
+    temp = []
+    # files = glob.glob('/scratch/kaurov/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(2,i))
+    if machine=='ias':
+        files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(mode,i))
+    if machine=='prs':
+        files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin'%(mode,i))
+    print(files)
+    files.sort()
+    snaps_n = np.array([np.float(files[i][-10:-4]) for i in range(len(files))])
+    # a_list = np.zeros(len(snaps))
+    xn = np.where(snaps_n>=a)[0]
+    if len(xn)>0:
+        xn = xn[0]
+        d1 = readifrit(files[xn],nvar=nvar)
+        d2 = readifrit(files[xn-1],nvar=nvar)
+        r = (snaps_n[xn]-a) / (snaps_n[xn] - snaps_n[xn-1])
+        res = d1[3]*(1.-r) + r*d2[3]
+        res_all.append(res.mean())
+        print(res.mean())
+        if machine == 'ias':
+            files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xLOG_xshuffle_%04i_%04i/rei.log' % (mode, i))
+        d = np.genfromtxt(files[0])
+        temp = np.interp(z, 1. / d[::-1, 0] - 1., d[::-1, 25], left=np.nan)
+        res_all2.append(temp)
+    else:
+        print('no data')
+
+
+######
+
+
+z = 7.
+a = 1./(1.+z)
+nvar=4
+print(z,a)
+res_all = []
+res_all2 = []
+for mode in [8,16,32,64,128]:
+    for i in [0,1,2,3,4,5,6,7,101]:#np.arange(0,24):
+        print(i)
+        temp = []
+        # files = glob.glob('/scratch/kaurov/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(2,i))
+        if machine=='ias':
+            files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(mode,i))
+        if machine=='prs':
+            files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin'%(mode,i))
+        print(files)
+        files.sort()
+        snaps_n = np.array([np.float(files[i][-10:-4]) for i in range(len(files))])
+        # a_list = np.zeros(len(snaps))
+        # xn = np.where(snaps_n>=a)[0]
+        # if len(xn)>0:
+        res_all = []
+        res_all2 = []
+        for xn in range(len(snaps_n)):
+            if len(glob.glob(files[xn]+'.8dat'))==0:
+                d1 = readifrit(files[xn],nvar=nvar)
+                res = d1[3]
+                res_all.append(res[:128,:128,:128].mean())
+                temp = []
+                for a1 in [0,1]:
+                    for a2 in [0,1]:
+                        for a3 in [0,1]:
+                            temp.append(res[a1*128:(a1+1)*128,
+                                        a2 * 128:(a2 + 1) * 128,
+                                        a3 * 128:(a3 + 1) * 128].mean())
+                np.savetxt(files[xn]+'.8dat', temp)
+            # print(res.mean())
+            # if machine == 'ias':
+            #     files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xLOG_xshuffle_%04i_%04i/rei.log' % (mode, i))
+            # d = np.genfromtxt(files[0])
+            # temp = np.interp(z, 1. / d[::-1, 0] - 1., d[::-1, 25], left=np.nan)
+            # res_all2.append(temp)
+        # plt.plot(1./snaps_n-1, res_all)
+
+
+print(z,a)
+res_all = []
+res_all2 = []
+mode=64
+
+for iii in range(6):
+    mode = [8,16,32,64,128][iii]
+    plt.subplot(2,3,iii+1)
+    for i in [0,1,2,3,4,5,6,7,101]:#np.arange(0,24):
+        print(i)
+        temp = []
+        # files = glob.glob('/scratch/kaurov/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin'%(2,i))
+        if machine=='ias':
+            files = glob.glob('/home/kaurov/scratch/rei/shuffle10/xOUT_xshuffle_%04i_%04i/*.bin.8dat'%(mode,i))
+        if machine=='prs':
+            files = glob.glob('/home/alex.kaurov/scratch/shuffle/jobs/xOUT_xshuffle_%04i_%04i/*.bin.8dat'%(mode,i))
+        # print(files)
+        files.sort()
+        if len(files)>1:
+            snaps_n = np.array([np.float(files[i][-15:-9]) for i in range(len(files))])
+            # a_list = np.zeros(len(snaps))
+            # xn = np.where(snaps_n>=a)[0]
+            # if len(xn)>0:
+            res_all = []
+            for xn in range(len(snaps_n)):
+                temp = np.genfromtxt(files[xn])
+                res_all.append(temp)
+            res_all = np.array(res_all)
+        plt.plot(1. / snaps_n - 1, res_all[:,4])
+    plt.ylim([-0.024,0.024])
+    plt.xlim([6,15])
+
+plt.show()
